@@ -22,7 +22,9 @@ namespace vibe.DirectoryServices
         public void AddMember(IDirectoryEntity<TSid> member)
         {
             if (member == null)
+            {
                 throw new ArgumentNullException(nameof(member));
+            }
 
             _provider.AddMemberToGroup(this, member);
         }

@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 
 namespace vibe.DirectoryServices.Providers.JsonFile
 {
@@ -64,10 +64,10 @@ namespace vibe.DirectoryServices.Providers.JsonFile
                 throw new InvalidOperationException($"User with username '{parameters.Username}' already exists");
             }
 
-            var sid = GenerateSid();
-            var timestamp = DateTime.UtcNow;
+            string sid = GenerateSid();
+            DateTime timestamp = DateTime.UtcNow;
 
-            var userData = new JsonDirectoryData.JsonUserData
+            JsonDirectoryData.JsonUserData userData = new JsonDirectoryData.JsonUserData
             {
                 Sid = sid,
                 Username = parameters.Username,
@@ -115,10 +115,10 @@ namespace vibe.DirectoryServices.Providers.JsonFile
                 throw new InvalidOperationException($"Group with name '{parameters.GroupName}' already exists");
             }
 
-            var sid = GenerateSid();
-            var timestamp = DateTime.UtcNow;
+            string sid = GenerateSid();
+            DateTime timestamp = DateTime.UtcNow;
 
-            var groupData = new JsonDirectoryData.JsonGroupData
+            JsonDirectoryData.JsonGroupData groupData = new JsonDirectoryData.JsonGroupData
             {
                 Sid = sid,
                 GroupName = parameters.GroupName,
@@ -152,7 +152,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
 
             _logger.LogDebug($"Looking up user with username: {username}");
 
-            var userData = _directoryData.Users.FirstOrDefault(u =>
+            JsonDirectoryData.JsonUserData userData = _directoryData.Users.FirstOrDefault(u =>
                 string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase));
 
             if (userData == null)
@@ -183,7 +183,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
 
             _logger.LogDebug($"Looking up group with name: {groupName}");
 
-            var groupData = _directoryData.Groups.FirstOrDefault(g =>
+            JsonDirectoryData.JsonGroupData groupData = _directoryData.Groups.FirstOrDefault(g =>
                 string.Equals(g.GroupName, groupName, StringComparison.OrdinalIgnoreCase));
 
             if (groupData == null)
@@ -227,7 +227,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
 
             _logger.LogInformation($"Adding member with SID '{member.Sid}' to group '{group.GroupName}'");
 
-            var groupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == group.Sid);
+            JsonDirectoryData.JsonGroupData groupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == group.Sid);
             if (groupData == null)
             {
                 _logger.LogWarning($"Group with SID '{group.Sid}' not found");
@@ -240,7 +240,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
                 return;
             }
 
-            var memberData = new JsonDirectoryData.JsonMemberData
+            JsonDirectoryData.JsonMemberData memberData = new JsonDirectoryData.JsonMemberData
             {
                 Sid = member.Sid,
                 ProviderId = member.ProviderId,
@@ -277,14 +277,14 @@ namespace vibe.DirectoryServices.Providers.JsonFile
 
             _logger.LogInformation($"Removing member with SID '{member.Sid}' from group '{group.GroupName}'");
 
-            var groupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == group.Sid);
+            JsonDirectoryData.JsonGroupData groupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == group.Sid);
             if (groupData == null)
             {
                 _logger.LogWarning($"Group with SID '{group.Sid}' not found");
                 throw new KeyNotFoundException($"Group with SID {group.Sid} not found");
             }
 
-            var memberData = groupData.Members.FirstOrDefault(m =>
+            JsonDirectoryData.JsonMemberData memberData = groupData.Members.FirstOrDefault(m =>
                 m.Sid == member.Sid && m.ProviderId == member.ProviderId);
 
             if (memberData != null)
@@ -317,22 +317,25 @@ namespace vibe.DirectoryServices.Providers.JsonFile
 
             _logger.LogDebug($"Getting members of group '{group.GroupName}'");
 
-            var groupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == group.Sid);
+            JsonDirectoryData.JsonGroupData groupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == group.Sid);
             if (groupData == null)
             {
                 _logger.LogWarning($"Group with SID '{group.Sid}' not found");
                 throw new KeyNotFoundException($"Group with SID {group.Sid} not found");
             }
 
-            var members = new List<IDirectoryEntity<string>>();
+            List<IDirectoryEntity<string>> members = new List<IDirectoryEntity<string>>();
 
-            foreach (var memberData in groupData.Members)
+            foreach (JsonDirectoryData.JsonMemberData memberData in groupData.Members)
+            {
                 if (memberData.ProviderId == ProviderId)
                 {
                     if (memberData.MemberType == "User")
                     {
-                        var userData = _directoryData.Users.FirstOrDefault(u => u.Sid == memberData.Sid);
+                        JsonDirectoryData.JsonUserData userData =
+                            _directoryData.Users.FirstOrDefault(u => u.Sid == memberData.Sid);
                         if (userData != null)
+                        {
                             members.Add(new JsonUser(
                                 userData.Sid,
                                 userData.Username,
@@ -341,11 +344,14 @@ namespace vibe.DirectoryServices.Providers.JsonFile
                                 userData.CreatedAt,
                                 userData.LastModified
                             ));
+                        }
                     }
                     else // Group
                     {
-                        var nestedGroupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == memberData.Sid);
+                        JsonDirectoryData.JsonGroupData nestedGroupData =
+                            _directoryData.Groups.FirstOrDefault(g => g.Sid == memberData.Sid);
                         if (nestedGroupData != null)
+                        {
                             members.Add(new JsonGroup(
                                 nestedGroupData.Sid,
                                 nestedGroupData.GroupName,
@@ -354,8 +360,10 @@ namespace vibe.DirectoryServices.Providers.JsonFile
                                 nestedGroupData.LastModified,
                                 this
                             ));
+                        }
                     }
                 }
+            }
 
             _logger.LogDebug($"Found {members.Count} members in group '{group.GroupName}'");
             return members;
@@ -384,14 +392,14 @@ namespace vibe.DirectoryServices.Providers.JsonFile
 
             _logger.LogDebug($"Checking if entity with SID '{entity.Sid}' is a member of group '{group.GroupName}'");
 
-            var groupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == group.Sid);
+            JsonDirectoryData.JsonGroupData groupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == group.Sid);
             if (groupData == null)
             {
                 _logger.LogWarning($"Group with SID '{group.Sid}' not found");
                 throw new KeyNotFoundException($"Group with SID {group.Sid} not found");
             }
 
-            var isDirectMember = groupData.Members.Any(m =>
+            bool isDirectMember = groupData.Members.Any(m =>
                 m.Sid == entity.Sid && m.ProviderId == entity.ProviderId);
 
             if (isDirectMember)
@@ -401,13 +409,14 @@ namespace vibe.DirectoryServices.Providers.JsonFile
             }
 
             // Check nested groups
-            foreach (var memberData in groupData.Members.Where(m =>
+            foreach (JsonDirectoryData.JsonMemberData memberData in groupData.Members.Where(m =>
                          m.MemberType == "Group" && m.ProviderId == ProviderId))
             {
-                var nestedGroupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == memberData.Sid);
+                JsonDirectoryData.JsonGroupData nestedGroupData =
+                    _directoryData.Groups.FirstOrDefault(g => g.Sid == memberData.Sid);
                 if (nestedGroupData != null)
                 {
-                    var nestedGroup = new JsonGroup(
+                    JsonGroup nestedGroup = new JsonGroup(
                         nestedGroupData.Sid,
                         nestedGroupData.GroupName,
                         nestedGroupData.Description,
@@ -451,7 +460,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
 
             _logger.LogDebug($"Looking up user with SID: {sid}");
 
-            var userData = _directoryData.Users.FirstOrDefault(u => u.Sid == sid);
+            JsonDirectoryData.JsonUserData userData = _directoryData.Users.FirstOrDefault(u => u.Sid == sid);
             if (userData == null)
             {
                 _logger.LogDebug($"User not found with SID: {sid}");
@@ -486,7 +495,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
 
             _logger.LogDebug($"Looking up group with SID: {sid}");
 
-            var groupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == sid);
+            JsonDirectoryData.JsonGroupData groupData = _directoryData.Groups.FirstOrDefault(g => g.Sid == sid);
             if (groupData == null)
             {
                 _logger.LogDebug($"Group not found with SID: {sid}");
@@ -512,7 +521,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
                 if (File.Exists(_filePath))
                 {
                     _logger.LogDebug($"Loading data from existing file: {_filePath}");
-                    var jsonContent = File.ReadAllText(_filePath);
+                    string jsonContent = File.ReadAllText(_filePath);
                     _directoryData = JsonSerializer.Deserialize<JsonDirectoryData>(jsonContent)
                                      ?? new JsonDirectoryData();
 
@@ -551,10 +560,8 @@ namespace vibe.DirectoryServices.Providers.JsonFile
                 await _fileAccessLock.WaitAsync();
                 _logger.LogDebug("Saving changes to JSON file");
 
-                var jsonContent = JsonSerializer.Serialize(_directoryData, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
+                string jsonContent =
+                    JsonSerializer.Serialize(_directoryData, new JsonSerializerOptions { WriteIndented = true });
 
                 File.WriteAllText(_filePath, jsonContent);
                 _logger.LogDebug("Successfully saved changes to JSON file");

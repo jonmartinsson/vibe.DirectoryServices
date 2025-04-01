@@ -19,11 +19,10 @@ namespace vibe.DirectoryServices.Providers.Adsi
         }
 
         public abstract string ProviderId { get; }
-        public virtual bool SupportsOperation => true;
 
         public virtual IDirectoryUser<string> CreateUser(DirectoryUserCreationParams parameters)
         {
-            var userPrincipal = new UserPrincipal(_context)
+            UserPrincipal userPrincipal = new UserPrincipal(_context)
             {
                 SamAccountName = parameters.Username,
                 DisplayName = parameters.DisplayName,
@@ -36,14 +35,13 @@ namespace vibe.DirectoryServices.Providers.Adsi
 
         public virtual IDirectoryGroup<string> CreateGroup(DirectoryGroupCreationParams parameters)
         {
-            var groupPrincipal = new GroupPrincipal(_context)
+            GroupPrincipal groupPrincipal = new GroupPrincipal(_context)
             {
-                Name = parameters.GroupName,
-                Description = parameters.Description
+                Name = parameters.GroupName, Description = parameters.Description
             };
             groupPrincipal.Save();
 
-            var group = CreateGroupFromPrincipal(groupPrincipal);
+            IDirectoryGroup<string> group = CreateGroupFromPrincipal(groupPrincipal);
             _groupPrincipalCache[groupPrincipal.Sid.ToString()] = groupPrincipal;
 
             return group;
@@ -51,22 +49,26 @@ namespace vibe.DirectoryServices.Providers.Adsi
 
         public virtual IDirectoryUser<string> FindUser(string username)
         {
-            var userPrincipal = UserPrincipal.FindByIdentity(_context, username);
+            UserPrincipal userPrincipal = UserPrincipal.FindByIdentity(_context, username);
 
             if (userPrincipal == null)
+            {
                 return null;
+            }
 
             return CreateUserFromPrincipal(userPrincipal);
         }
 
         public virtual IDirectoryGroup<string> FindGroup(string groupName)
         {
-            var groupPrincipal = GroupPrincipal.FindByIdentity(_context, groupName);
+            GroupPrincipal groupPrincipal = GroupPrincipal.FindByIdentity(_context, groupName);
 
             if (groupPrincipal == null)
+            {
                 return null;
+            }
 
-            var group = CreateGroupFromPrincipal(groupPrincipal);
+            IDirectoryGroup<string> group = CreateGroupFromPrincipal(groupPrincipal);
             _groupPrincipalCache[groupPrincipal.Sid.ToString()] = groupPrincipal;
 
             return group;
@@ -75,14 +77,16 @@ namespace vibe.DirectoryServices.Providers.Adsi
         public virtual void AddMemberToGroup(IDirectoryGroup<string> group, IDirectoryEntity<string> member)
         {
             if (group.ProviderId != ProviderId)
+            {
                 throw new ArgumentException($"Group is not from the {ProviderId} provider");
+            }
 
-            var groupPrincipal = GetGroupPrincipal(group);
+            GroupPrincipal groupPrincipal = GetGroupPrincipal(group);
 
             if (member.ProviderId == ProviderId)
             {
                 // Same provider - use direct approach
-                var memberPrincipal = ResolvePrincipal(member);
+                Principal memberPrincipal = ResolvePrincipal(member);
                 if (memberPrincipal != null)
                 {
                     groupPrincipal.Members.Add(memberPrincipal);
@@ -93,24 +97,30 @@ namespace vibe.DirectoryServices.Providers.Adsi
             {
                 // Cross-provider case
                 if (CanHandleForeignEntity(member))
+                {
                     AddCrossProviderMember(groupPrincipal, member);
+                }
                 else
+                {
                     throw new NotSupportedException(
                         $"Provider {ProviderId} cannot handle entities from provider {member.ProviderId}");
+                }
             }
         }
 
         public virtual void RemoveMemberFromGroup(IDirectoryGroup<string> group, IDirectoryEntity<string> member)
         {
             if (group.ProviderId != ProviderId)
+            {
                 throw new ArgumentException($"Group is not from the {ProviderId} provider");
+            }
 
-            var groupPrincipal = GetGroupPrincipal(group);
+            GroupPrincipal groupPrincipal = GetGroupPrincipal(group);
 
             if (member.ProviderId == ProviderId)
             {
                 // Same provider - use direct approach
-                var principal = ResolvePrincipal(member);
+                Principal principal = ResolvePrincipal(member);
                 if (principal != null)
                 {
                     groupPrincipal.Members.Remove(principal);
@@ -123,8 +133,10 @@ namespace vibe.DirectoryServices.Providers.Adsi
                 if (CanHandleForeignEntity(member))
                 {
                     if (!RemoveCrossProviderMember(groupPrincipal, member))
+                    {
                         throw new InvalidOperationException(
                             $"Failed to remove member from {member.ProviderId} provider in {ProviderId} group");
+                    }
                 }
                 else
                 {
@@ -137,16 +149,24 @@ namespace vibe.DirectoryServices.Providers.Adsi
         public virtual IEnumerable<IDirectoryEntity<string>> GetGroupMembers(IDirectoryGroup<string> group)
         {
             if (group.ProviderId != ProviderId)
+            {
                 throw new ArgumentException($"Group is not from the {ProviderId} provider");
+            }
 
-            var groupPrincipal = GetGroupPrincipal(group);
-            var members = new List<IDirectoryEntity<string>>();
+            GroupPrincipal groupPrincipal = GetGroupPrincipal(group);
+            List<IDirectoryEntity<string>> members = new List<IDirectoryEntity<string>>();
 
-            foreach (var member in groupPrincipal.Members)
+            foreach (Principal member in groupPrincipal.Members)
+            {
                 if (member is UserPrincipal userPrincipal && IsFromCurrentContext(userPrincipal))
+                {
                     members.Add(CreateUserFromPrincipal(userPrincipal));
+                }
                 else if (member is GroupPrincipal nestedGroupPrincipal && IsFromCurrentContext(nestedGroupPrincipal))
+                {
                     members.Add(CreateGroupFromPrincipal(nestedGroupPrincipal));
+                }
+            }
 
             return members;
         }
@@ -154,25 +174,33 @@ namespace vibe.DirectoryServices.Providers.Adsi
         public virtual bool IsGroupMember(IDirectoryGroup<string> group, IDirectoryEntity<string> entity)
         {
             if (group.ProviderId != ProviderId)
+            {
                 throw new ArgumentException($"Group is not from the {ProviderId} provider");
+            }
 
-            var groupPrincipal = GetGroupPrincipal(group);
+            GroupPrincipal groupPrincipal = GetGroupPrincipal(group);
 
-            var isDirectMember = groupPrincipal.Members
+            bool isDirectMember = groupPrincipal.Members
                 .OfType<Principal>()
                 .Any(p => p.Sid.ToString() == entity.Sid);
 
             if (isDirectMember)
+            {
                 return true;
+            }
 
-            foreach (var member in groupPrincipal.Members)
+            foreach (Principal member in groupPrincipal.Members)
+            {
                 if (member is GroupPrincipal nestedGroup && IsFromCurrentContext(nestedGroup))
                 {
-                    var nestedDirectoryGroup = CreateGroupFromPrincipal(nestedGroup);
+                    IDirectoryGroup<string> nestedDirectoryGroup = CreateGroupFromPrincipal(nestedGroup);
 
                     if (IsGroupMember(nestedDirectoryGroup, entity))
+                    {
                         return true;
+                    }
                 }
+            }
 
             return false;
         }
@@ -186,12 +214,16 @@ namespace vibe.DirectoryServices.Providers.Adsi
         public virtual IDirectoryUser<string> GetUserBySid(string sid)
         {
             if (!SupportsSidLookup(sid))
+            {
                 return null;
+            }
 
-            var userPrincipal = UserPrincipal.FindByIdentity(_context, IdentityType.Sid, sid);
+            UserPrincipal userPrincipal = UserPrincipal.FindByIdentity(_context, IdentityType.Sid, sid);
 
             if (userPrincipal == null)
+            {
                 return null;
+            }
 
             return CreateUserFromPrincipal(userPrincipal);
         }
@@ -199,17 +231,23 @@ namespace vibe.DirectoryServices.Providers.Adsi
         public virtual IDirectoryGroup<string> GetGroupBySid(string sid)
         {
             if (!SupportsSidLookup(sid))
+            {
                 return null;
+            }
 
-            if (_groupPrincipalCache.TryGetValue(sid, out var cachedGroupPrincipal))
+            if (_groupPrincipalCache.TryGetValue(sid, out GroupPrincipal cachedGroupPrincipal))
+            {
                 return CreateGroupFromPrincipal(cachedGroupPrincipal);
+            }
 
-            var groupPrincipal = GroupPrincipal.FindByIdentity(_context, IdentityType.Sid, sid);
+            GroupPrincipal groupPrincipal = GroupPrincipal.FindByIdentity(_context, IdentityType.Sid, sid);
 
             if (groupPrincipal == null)
+            {
                 return null;
+            }
 
-            var group = CreateGroupFromPrincipal(groupPrincipal);
+            IDirectoryGroup<string> group = CreateGroupFromPrincipal(groupPrincipal);
             _groupPrincipalCache[groupPrincipal.Sid.ToString()] = groupPrincipal;
 
             return group;
@@ -229,15 +267,20 @@ namespace vibe.DirectoryServices.Providers.Adsi
             {
                 // Same provider - use direct SID lookup
                 if (entity is IDirectoryUser<string>)
+                {
                     return UserPrincipal.FindByIdentity(_context, IdentityType.Sid, entity.Sid);
+                }
+
                 if (entity is IDirectoryGroup<string>)
+                {
                     return GroupPrincipal.FindByIdentity(_context, IdentityType.Sid, entity.Sid);
+                }
             }
 
             // For foreign providers, attempt SID resolution if possible
             try
             {
-                var sid = new SecurityIdentifier(entity.Sid);
+                SecurityIdentifier sid = new SecurityIdentifier(entity.Sid);
                 return Principal.FindByIdentity(_context, IdentityType.Sid, sid.Value);
             }
             catch
@@ -259,14 +302,20 @@ namespace vibe.DirectoryServices.Providers.Adsi
         protected virtual GroupPrincipal GetGroupPrincipal(IDirectoryGroup<string> group)
         {
             if (group.ProviderId != ProviderId)
+            {
                 throw new ArgumentException($"Group is not from the {ProviderId} provider");
+            }
 
-            if (_groupPrincipalCache.TryGetValue(group.Sid, out var cachedGroup))
+            if (_groupPrincipalCache.TryGetValue(group.Sid, out GroupPrincipal cachedGroup))
+            {
                 return cachedGroup;
+            }
 
-            var groupPrincipal = GroupPrincipal.FindByIdentity(_context, IdentityType.Sid, group.Sid);
+            GroupPrincipal groupPrincipal = GroupPrincipal.FindByIdentity(_context, IdentityType.Sid, group.Sid);
             if (groupPrincipal == null)
+            {
                 throw new KeyNotFoundException($"Group with SID {group.Sid} not found");
+            }
 
             _groupPrincipalCache[group.Sid] = groupPrincipal;
             return groupPrincipal;

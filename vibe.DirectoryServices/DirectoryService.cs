@@ -13,7 +13,9 @@ namespace vibe.DirectoryServices
         public DirectoryService(IEnumerable<IDirectoryProvider<TSid>> providers, ILogger logger)
         {
             if (providers == null || !providers.Any())
+            {
                 throw new ArgumentException("At least one provider must be specified", nameof(providers));
+            }
 
             _providers = providers.ToDictionary(p => p.ProviderId, p => p);
             _logger = logger ?? throw new ArgumentException("Logger must be specified", nameof(logger));
@@ -32,14 +34,15 @@ namespace vibe.DirectoryServices
                 throw new ArgumentException("Search term cannot be null or empty", nameof(searchTerm));
             }
 
-            var results = new List<IDirectoryUser<TSid>>();
-            var errors = new List<Exception>();
+            List<IDirectoryUser<TSid>> results = new List<IDirectoryUser<TSid>>();
+            List<Exception> errors = new List<Exception>();
 
-            foreach (var provider in _providers.Values)
+            foreach (IDirectoryProvider<TSid> provider in _providers.Values)
+            {
                 try
                 {
                     _logger.LogDebug($"Searching provider '{provider.ProviderId}' for users matching '{searchTerm}'");
-                    var user = provider.FindUser(searchTerm);
+                    IDirectoryUser<TSid> user = provider.FindUser(searchTerm);
                     if (user != null)
                     {
                         _logger.LogDebug($"Found user '{user.Username}' in provider '{provider.ProviderId}'");
@@ -52,15 +55,19 @@ namespace vibe.DirectoryServices
                     errors.Add(new DirectoryServiceException(provider.ProviderId,
                         $"Error searching for users with term '{searchTerm}'", ex));
                 }
+            }
 
             if (results.Count == 0 && errors.Count > 0)
             {
                 if (errors.Count == 1)
+                {
                     throw errors[0];
+                }
+
                 throw new AggregateException("Multiple errors occurred while searching for users", errors);
             }
 
-           _logger.LogInformation($"Found {results.Count} users matching term '{searchTerm}'");
+            _logger.LogInformation($"Found {results.Count} users matching term '{searchTerm}'");
             return results;
         }
 
@@ -70,50 +77,57 @@ namespace vibe.DirectoryServices
 
             if (sid == null)
             {
-               _logger.LogWarning("GetUserById called with null SID");
+                _logger.LogWarning("GetUserById called with null SID");
                 throw new ArgumentNullException(nameof(sid), "SID cannot be null");
             }
 
-            var supportingProviders = _providers.Values.Where(p => p.SupportsSidLookup(sid)).ToList();
+            List<IDirectoryProvider<TSid>> supportingProviders =
+                _providers.Values.Where(p => p.SupportsSidLookup(sid)).ToList();
 
             if (supportingProviders.Count == 0)
             {
-               _logger.LogWarning($"No providers found that support SID format '{sid}'");
+                _logger.LogWarning($"No providers found that support SID format '{sid}'");
                 throw new NotSupportedException($"No providers registered that support SID format: {sid}");
             }
 
             _logger.LogDebug($"Found {supportingProviders.Count} providers that support SID format '{sid}'");
 
-            var errors = new List<Exception>();
+            List<Exception> errors = new List<Exception>();
 
-            foreach (var provider in supportingProviders)
+            foreach (IDirectoryProvider<TSid> provider in supportingProviders)
+            {
                 try
                 {
                     _logger.LogDebug($"Checking provider '{provider.ProviderId}' for user with SID '{sid}'");
-                    var user = provider.GetUserBySid(sid);
+                    IDirectoryUser<TSid> user = provider.GetUserBySid(sid);
                     if (user != null)
                     {
-                       _logger.LogInformation(
+                        _logger.LogInformation(
                             $"Found user '{user.Username}' with SID '{sid}' in provider '{provider.ProviderId}'");
                         return user;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Error getting user with SID '{sid}' from provider '{provider.ProviderId}'", ex);
+                    _logger.LogError(ex, $"Error getting user with SID '{sid}' from provider '{provider.ProviderId}'",
+                        ex);
                     errors.Add(new DirectoryServiceException(provider.ProviderId,
                         $"Error looking up user with SID '{sid}'", ex));
                 }
+            }
 
             if (errors.Count > 0)
             {
                 if (errors.Count == 1)
+                {
                     throw errors[0];
+                }
+
                 throw new AggregateException($"Multiple errors occurred while looking up user with SID '{sid}'",
                     errors);
             }
 
-           _logger.LogWarning($"No user found with SID '{sid}' in any provider");
+            _logger.LogWarning($"No user found with SID '{sid}' in any provider");
             throw new KeyNotFoundException($"No user found with SID: {sid}");
         }
 
@@ -123,30 +137,32 @@ namespace vibe.DirectoryServices
 
             if (sid == null)
             {
-               _logger.LogWarning("GetGroupById called with null SID");
+                _logger.LogWarning("GetGroupById called with null SID");
                 throw new ArgumentNullException(nameof(sid), "SID cannot be null");
             }
 
-            var supportingProviders = _providers.Values.Where(p => p.SupportsSidLookup(sid)).ToList();
+            List<IDirectoryProvider<TSid>> supportingProviders =
+                _providers.Values.Where(p => p.SupportsSidLookup(sid)).ToList();
 
             if (supportingProviders.Count == 0)
             {
-               _logger.LogWarning($"No providers found that support SID format '{sid}'");
+                _logger.LogWarning($"No providers found that support SID format '{sid}'");
                 throw new NotSupportedException($"No providers registered that support SID format: {sid}");
             }
 
             _logger.LogDebug($"Found {supportingProviders.Count} providers that support SID format '{sid}'");
 
-            var errors = new List<Exception>();
+            List<Exception> errors = new List<Exception>();
 
-            foreach (var provider in supportingProviders)
+            foreach (IDirectoryProvider<TSid> provider in supportingProviders)
+            {
                 try
                 {
                     _logger.LogDebug($"Checking provider '{provider.ProviderId}' for group with SID '{sid}'");
-                    var group = provider.GetGroupBySid(sid);
+                    IDirectoryGroup<TSid> group = provider.GetGroupBySid(sid);
                     if (group != null)
                     {
-                       _logger.LogInformation(
+                        _logger.LogInformation(
                             $"Found group '{group.GroupName}' with SID '{sid}' in provider '{provider.ProviderId}'");
                         return group;
                     }
@@ -157,16 +173,20 @@ namespace vibe.DirectoryServices
                     errors.Add(new DirectoryServiceException(provider.ProviderId,
                         $"Error looking up group with SID '{sid}'", ex));
                 }
+            }
 
             if (errors.Count > 0)
             {
                 if (errors.Count == 1)
+                {
                     throw errors[0];
+                }
+
                 throw new AggregateException($"Multiple errors occurred while looking up group with SID '{sid}'",
                     errors);
             }
 
-           _logger.LogWarning($"No group found with SID '{sid}' in any provider");
+            _logger.LogWarning($"No group found with SID '{sid}' in any provider");
             throw new KeyNotFoundException($"No group found with SID: {sid}");
         }
     }

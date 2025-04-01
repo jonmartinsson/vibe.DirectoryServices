@@ -36,11 +36,15 @@ namespace vibe.DirectoryServices.Providers.Adsi
         protected override void AddCrossProviderMember(GroupPrincipal groupPrincipal, IDirectoryEntity<string> member)
         {
             if (!CanHandleForeignEntity(member))
+            {
                 throw new NotSupportedException($"Cannot add {member.ProviderId} entities to Windows local groups.");
+            }
 
-            var principal = ResolvePrincipal(member);
+            Principal principal = ResolvePrincipal(member);
             if (principal == null)
+            {
                 throw new InvalidOperationException($"Could not resolve {member.ProviderId} entity into a principal.");
+            }
 
             try
             {
@@ -57,11 +61,13 @@ namespace vibe.DirectoryServices.Providers.Adsi
             IDirectoryEntity<string> member)
         {
             if (!CanHandleForeignEntity(member))
+            {
                 return false;
+            }
 
             try
             {
-                var principal = ResolvePrincipal(member);
+                Principal principal = ResolvePrincipal(member);
                 if (principal != null)
                 {
                     groupPrincipal.Members.Remove(principal);
@@ -86,24 +92,29 @@ namespace vibe.DirectoryServices.Providers.Adsi
         public override Principal ResolvePrincipal(IDirectoryEntity<string> entity)
         {
             // First try the base implementation
-            var principal = base.ResolvePrincipal(entity);
+            Principal principal = base.ResolvePrincipal(entity);
             if (principal != null)
+            {
                 return principal;
+            }
 
             // Handle Active Directory accounts specifically
             if (entity.ProviderId == "ActiveDirectory")
+            {
                 try
                 {
-                    var sid = new SecurityIdentifier(entity.Sid);
-                    var ntAccount = (NTAccount)sid.Translate(typeof(NTAccount));
+                    SecurityIdentifier sid = new SecurityIdentifier(entity.Sid);
+                    NTAccount ntAccount = (NTAccount)sid.Translate(typeof(NTAccount));
 
                     // Try local context first
                     principal = Principal.FindByIdentity(_context, IdentityType.SamAccountName, ntAccount.Value);
                     if (principal != null)
+                    {
                         return principal;
+                    }
 
                     // Try with domain context if not found locally
-                    using (var domainContext = new PrincipalContext(ContextType.Domain))
+                    using (PrincipalContext domainContext = new PrincipalContext(ContextType.Domain))
                     {
                         return Principal.FindByIdentity(domainContext, ntAccount.Value);
                     }
@@ -112,6 +123,7 @@ namespace vibe.DirectoryServices.Providers.Adsi
                 {
                     return null;
                 }
+            }
 
             return null;
         }

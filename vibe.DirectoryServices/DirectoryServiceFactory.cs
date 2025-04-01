@@ -64,7 +64,7 @@ namespace vibe.DirectoryServices
                 throw new ArgumentException("Provider ID cannot be null or empty", nameof(providerId));
             }
 
-            if (!_providerRegistry.TryGetValue(providerId, out var provider))
+            if (!_providerRegistry.TryGetValue(providerId, out IDirectoryProvider<string> provider))
             {
                 _logger.LogWarning($"Provider not found: {providerId}");
                 throw new KeyNotFoundException($"No provider registered with ID: {providerId}");
@@ -76,7 +76,9 @@ namespace vibe.DirectoryServices
         public bool HasProvider(string providerId)
         {
             if (string.IsNullOrWhiteSpace(providerId))
+            {
                 return false;
+            }
 
             return _providerRegistry.ContainsKey(providerId);
         }

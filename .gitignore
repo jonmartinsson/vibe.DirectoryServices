@@ -4,3 +4,6 @@
 /vibe.DirectoryServices.Providers.JsonFile/bin
 /vibe.DirectoryServices.Providers.ActiveDirectory/obj
 /vibe.DirectoryServices.Providers.ActiveDirectory/bin
+/.vs
+/ConsoleTester/bin
+/ConsoleTester/obj
