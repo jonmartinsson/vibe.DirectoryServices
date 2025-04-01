@@ -9,3 +9,6 @@
 /.vs
 /ConsoleTester/bin
 /ConsoleTester/obj
+/vibe.DirectoryServices.Providers.LdapNet.UnitTests/bin
+/vibe.DirectoryServices.Providers.LdapNet.UnitTests/obj
+/.idea
