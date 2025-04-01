@@ -12,3 +12,4 @@
 /vibe.DirectoryServices.Providers.LdapNet.UnitTests/bin
 /vibe.DirectoryServices.Providers.LdapNet.UnitTests/obj
 /.idea
+vibe.DirectoryServices.Providers.LdapNet.UnitTests/Properties/launchSettings.json
