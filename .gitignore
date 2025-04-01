@@ -7,3 +7,5 @@
 /.vs
 /ConsoleTester/bin
 /ConsoleTester/obj
+/vibe.DirectoryServices.Provides.LdapNet/bin/Debug/net8.0
+/vibe.DirectoryServices.Provides.LdapNet/obj
