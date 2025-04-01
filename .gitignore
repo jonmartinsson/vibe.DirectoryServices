@@ -1,0 +1,6 @@
+/vibe.DirectoryServices/obj
+/vibe.DirectoryServices/bin
+/vibe.DirectoryServices.Providers.JsonFile/obj
+/vibe.DirectoryServices.Providers.JsonFile/bin
+/vibe.DirectoryServices.Providers.ActiveDirectory/obj
+/vibe.DirectoryServices.Providers.ActiveDirectory/bin

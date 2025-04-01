@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\vibe.DirectoryServices\vibe.DirectoryServices.csproj" />
+    <ProjectReference Include="..\vibe.DirectoryServices.Providers.ActiveDirectory\vibe.DirectoryServices.Providers.Adsi.csproj" />
+    <ProjectReference Include="..\vibe.DirectoryServices.Providers.JsonFile\vibe.DirectoryServices.Providers.JsonFile.csproj" />
+  </ItemGroup>
+
+</Project>
