@@ -1,11 +1,17 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.DirectoryServices.AccountManagement;
 using System.Security.Principal;
 
 namespace vibe.DirectoryServices.Providers.Adsi
 {
-    public class ActiveDirectoryProvider : AdsiDirectoryProvider
+    public class ActiveDirectoryDirectoryProvider : AdsiDirectoryProvider
     {
+        public ActiveDirectoryDirectoryProvider(ActiveDirectoryDirectoryProviderConfiguration configuration,
+            ILogger<ActiveDirectoryDirectoryProvider> logger) : base(logger)
+        {
+        }
+
         public override string ProviderId => "ActiveDirectory";
 
         protected override PrincipalContext GetContext()

@@ -4,8 +4,8 @@
 /vibe.DirectoryServices.Providers.JsonFile/bin
 /vibe.DirectoryServices.Providers.ActiveDirectory/obj
 /vibe.DirectoryServices.Providers.ActiveDirectory/bin
+/vibe.DirectoryServices.Provides.LdapNet/bin
+/vibe.DirectoryServices.Provides.LdapNet/obj
 /.vs
 /ConsoleTester/bin
 /ConsoleTester/obj
-/vibe.DirectoryServices.Provides.LdapNet/bin/Debug/net8.0
-/vibe.DirectoryServices.Provides.LdapNet/obj

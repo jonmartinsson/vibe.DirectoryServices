@@ -1,11 +1,20 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.DirectoryServices.AccountManagement;
 using System.Security.Principal;
 
 namespace vibe.DirectoryServices.Providers.Adsi
 {
-    public class LocalWindowsProvider : AdsiDirectoryProvider
+    public class LocalWindowsDirectoryProvider : AdsiDirectoryProvider
     {
+        private readonly LocalWindowsDirectoryProviderConfiguration _configuration;
+
+        public LocalWindowsDirectoryProvider(LocalWindowsDirectoryProviderConfiguration configuration,
+            ILogger<LocalWindowsDirectoryProvider> logger) : base(logger)
+        {
+            _configuration = configuration;
+        }
+
         public override string ProviderId => "WindowsLocal";
 
         protected override PrincipalContext GetContext()

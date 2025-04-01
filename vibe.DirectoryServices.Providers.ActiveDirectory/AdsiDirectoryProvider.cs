@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.DirectoryServices.AccountManagement;
 using System.Linq;
@@ -6,21 +7,20 @@ using System.Security.Principal;
 
 namespace vibe.DirectoryServices.Providers.Adsi
 {
-    public abstract class AdsiDirectoryProvider : IAdsiDirectoryProvider
+    public abstract class AdsiDirectoryProvider : DirectoryProviderBase<string>, IAdsiDirectoryProvider
     {
         protected readonly Dictionary<string, GroupPrincipal> _groupPrincipalCache =
             new Dictionary<string, GroupPrincipal>();
 
         protected PrincipalContext _context;
 
-        protected AdsiDirectoryProvider()
+        protected AdsiDirectoryProvider(ILogger logger) : base(logger)
         {
             _context = GetContext();
         }
 
-        public abstract string ProviderId { get; }
 
-        public virtual IDirectoryUser<string> CreateUser(DirectoryUserCreationParams parameters)
+        public override IDirectoryUser<string> CreateUser(DirectoryUserCreationParams parameters)
         {
             UserPrincipal userPrincipal = new UserPrincipal(_context)
             {
@@ -33,7 +33,7 @@ namespace vibe.DirectoryServices.Providers.Adsi
             return CreateUserFromPrincipal(userPrincipal);
         }
 
-        public virtual IDirectoryGroup<string> CreateGroup(DirectoryGroupCreationParams parameters)
+        public override IDirectoryGroup<string> CreateGroup(DirectoryGroupCreationParams parameters)
         {
             GroupPrincipal groupPrincipal = new GroupPrincipal(_context)
             {
@@ -47,7 +47,7 @@ namespace vibe.DirectoryServices.Providers.Adsi
             return group;
         }
 
-        public virtual IDirectoryUser<string> FindUser(string username)
+        public override IDirectoryUser<string> FindUser(string username)
         {
             UserPrincipal userPrincipal = UserPrincipal.FindByIdentity(_context, username);
 
@@ -59,7 +59,7 @@ namespace vibe.DirectoryServices.Providers.Adsi
             return CreateUserFromPrincipal(userPrincipal);
         }
 
-        public virtual IDirectoryGroup<string> FindGroup(string groupName)
+        public override IDirectoryGroup<string> FindGroup(string groupName)
         {
             GroupPrincipal groupPrincipal = GroupPrincipal.FindByIdentity(_context, groupName);
 
@@ -74,7 +74,7 @@ namespace vibe.DirectoryServices.Providers.Adsi
             return group;
         }
 
-        public virtual void AddMemberToGroup(IDirectoryGroup<string> group, IDirectoryEntity<string> member)
+        public override void AddMemberToGroup(IDirectoryGroup<string> group, IDirectoryEntity<string> member)
         {
             if (group.ProviderId != ProviderId)
             {
@@ -108,7 +108,7 @@ namespace vibe.DirectoryServices.Providers.Adsi
             }
         }
 
-        public virtual void RemoveMemberFromGroup(IDirectoryGroup<string> group, IDirectoryEntity<string> member)
+        public override void RemoveMemberFromGroup(IDirectoryGroup<string> group, IDirectoryEntity<string> member)
         {
             if (group.ProviderId != ProviderId)
             {
@@ -146,7 +146,7 @@ namespace vibe.DirectoryServices.Providers.Adsi
             }
         }
 
-        public virtual IEnumerable<IDirectoryEntity<string>> GetGroupMembers(IDirectoryGroup<string> group)
+        public override IEnumerable<IDirectoryEntity<string>> GetGroupMembers(IDirectoryGroup<string> group)
         {
             if (group.ProviderId != ProviderId)
             {
@@ -171,7 +171,7 @@ namespace vibe.DirectoryServices.Providers.Adsi
             return members;
         }
 
-        public virtual bool IsGroupMember(IDirectoryGroup<string> group, IDirectoryEntity<string> entity)
+        public override bool IsGroupMember(IDirectoryGroup<string> group, IDirectoryEntity<string> entity)
         {
             if (group.ProviderId != ProviderId)
             {
@@ -205,13 +205,13 @@ namespace vibe.DirectoryServices.Providers.Adsi
             return false;
         }
 
-        public virtual bool SupportsSidLookup(string sid)
+        public override bool SupportsSidLookup(string sid)
         {
             // ADSI providers can handle SIDs in string format
             return sid != null && (sid.StartsWith("S-1-") || sid.StartsWith("S-2-"));
         }
 
-        public virtual IDirectoryUser<string> GetUserBySid(string sid)
+        public override IDirectoryUser<string> GetUserBySid(string sid)
         {
             if (!SupportsSidLookup(sid))
             {
@@ -228,7 +228,7 @@ namespace vibe.DirectoryServices.Providers.Adsi
             return CreateUserFromPrincipal(userPrincipal);
         }
 
-        public virtual IDirectoryGroup<string> GetGroupBySid(string sid)
+        public override IDirectoryGroup<string> GetGroupBySid(string sid)
         {
             if (!SupportsSidLookup(sid))
             {
@@ -253,7 +253,7 @@ namespace vibe.DirectoryServices.Providers.Adsi
             return group;
         }
 
-        public virtual bool CanHandleForeignEntity(IDirectoryEntity<string> entity)
+        public override bool CanHandleForeignEntity(IDirectoryEntity<string> entity)
         {
             // By default, each provider only handles its own entities
             // Override in concrete providers to handle specific cross-provider scenarios

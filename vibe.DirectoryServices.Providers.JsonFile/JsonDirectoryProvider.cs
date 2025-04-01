@@ -8,17 +8,15 @@ using System.Threading;
 
 namespace vibe.DirectoryServices.Providers.JsonFile
 {
-    public class JsonProvider : IDirectoryProvider<string>
+    public class JsonDirectoryProvider : DirectoryProviderBase<string>
     {
         private readonly SemaphoreSlim _fileAccessLock = new SemaphoreSlim(1, 1);
         private readonly string _filePath;
-        private readonly ILogger<JsonProvider> _logger;
         private JsonDirectoryData _directoryData;
 
-        public JsonProvider(JsonProviderConfiguration configuration, ILoggerFactory loggerFactory)
+        public JsonDirectoryProvider(JsonDirectoryProviderConfiguration configuration, ILogger<JsonDirectoryProvider> logger) : base(logger)
         {
             _filePath = configuration.FilePath ?? throw new ArgumentNullException(nameof(configuration.FilePath));
-            _logger = loggerFactory.CreateLogger<JsonProvider>();
             _logger.LogInformation($"Initializing JSON File provider with file: {_filePath}");
 
             try
@@ -32,15 +30,15 @@ namespace vibe.DirectoryServices.Providers.JsonFile
             }
         }
 
-        public string ProviderId => "JsonFile";
+        public override string ProviderId => "JsonFile";
 
-        public bool CanHandleForeignEntity(IDirectoryEntity<string> entity)
+        public override bool CanHandleForeignEntity(IDirectoryEntity<string> entity)
         {
             // JSON provider can handle entities from any provider
             return true;
         }
 
-        public IDirectoryUser<string> CreateUser(DirectoryUserCreationParams parameters)
+        public override IDirectoryUser<string> CreateUser(DirectoryUserCreationParams parameters)
         {
             if (parameters == null)
             {
@@ -91,7 +89,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
             );
         }
 
-        public IDirectoryGroup<string> CreateGroup(DirectoryGroupCreationParams parameters)
+        public override IDirectoryGroup<string> CreateGroup(DirectoryGroupCreationParams parameters)
         {
             if (parameters == null)
             {
@@ -142,7 +140,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
             );
         }
 
-        public IDirectoryUser<string> FindUser(string username)
+        public override IDirectoryUser<string> FindUser(string username)
         {
             if (string.IsNullOrWhiteSpace(username))
             {
@@ -173,7 +171,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
             );
         }
 
-        public IDirectoryGroup<string> FindGroup(string groupName)
+        public override IDirectoryGroup<string> FindGroup(string groupName)
         {
             if (string.IsNullOrWhiteSpace(groupName))
             {
@@ -204,7 +202,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
             );
         }
 
-        public void AddMemberToGroup(IDirectoryGroup<string> group, IDirectoryEntity<string> member)
+        public override void AddMemberToGroup(IDirectoryGroup<string> group, IDirectoryEntity<string> member)
         {
             if (group == null)
             {
@@ -254,7 +252,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
             _logger.LogDebug($"Successfully added member with SID '{member.Sid}' to group '{group.GroupName}'");
         }
 
-        public void RemoveMemberFromGroup(IDirectoryGroup<string> group, IDirectoryEntity<string> member)
+        public override void RemoveMemberFromGroup(IDirectoryGroup<string> group, IDirectoryEntity<string> member)
         {
             if (group == null)
             {
@@ -300,7 +298,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
             }
         }
 
-        public IEnumerable<IDirectoryEntity<string>> GetGroupMembers(IDirectoryGroup<string> group)
+        public override IEnumerable<IDirectoryEntity<string>> GetGroupMembers(IDirectoryGroup<string> group)
         {
             if (group == null)
             {
@@ -369,7 +367,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
             return members;
         }
 
-        public bool IsGroupMember(IDirectoryGroup<string> group, IDirectoryEntity<string> entity)
+        public override bool IsGroupMember(IDirectoryGroup<string> group, IDirectoryEntity<string> entity)
         {
             if (group == null)
             {
@@ -438,13 +436,13 @@ namespace vibe.DirectoryServices.Providers.JsonFile
             return false;
         }
 
-        public bool SupportsSidLookup(string sid)
+        public override bool SupportsSidLookup(string sid)
         {
             // JSON provider can handle SIDs that start with "J-"
             return sid != null && sid.StartsWith("J-");
         }
 
-        public IDirectoryUser<string> GetUserBySid(string sid)
+        public override IDirectoryUser<string> GetUserBySid(string sid)
         {
             if (sid == null)
             {
@@ -479,7 +477,7 @@ namespace vibe.DirectoryServices.Providers.JsonFile
             );
         }
 
-        public IDirectoryGroup<string> GetGroupBySid(string sid)
+        public override IDirectoryGroup<string> GetGroupBySid(string sid)
         {
             if (sid == null)
             {
